@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Movie API Documentation</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+        h2, h3 {
+            color: #333;
+        }
+        pre {
+            background-color: #f4f4f4;
+            padding: 10px;
+            border-left: 3px solid #333;
+            margin: 20px 0;
+        }
+        .endpoint {
+            margin-bottom: 40px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Movie API Documentation</h1>
+    <p><Strong>Root URL: http://localhost:2000</Strong></p>
+    <div class="endpoint">
+        <h2>1. Retrieve All Movies</h2>
+        <h3>GET /</h3>
+        <p>Retrieves all records from the Movies table.</p>
+        <h3>Sample Response</h3>
+        <pre>[{"Name": "Inception", "ReleaseDate": "2010-07-16", "Rating": 8.8, "Director": "Christopher Nolan", "Genre": "Action, Adventure, Sci-Fi"}]</pre>
+    </div>
+    
+    <div class="endpoint">
+        <h2>2. Retrieve All Movies Sorted by Rating</h2>
+        <h3>GET /movies/sorted-by-rating</h3>
+        <p>Retrieves all movies sorted from the highest rating to the lowest.</p>
+        <h3>Sample Response</h3>
+        <pre>[{"Name": "The Shawshank Redemption", "ReleaseDate": "1994-10-14", "Rating": 9.3, "Director": "Frank Darabont", "Genre": "Drama"}]</pre>
+    </div>
+    
+    <div class="endpoint">
+        <h2>3. Search Movies by Genre</h2>
+        <h3>GET /movies/search</h3>
+        <p>Searches for movies by genre.</p>
+        <h3>Request Parameters</h3>
+        <p><strong>genre</strong> (query parameter)</p>
+        <h3>Sample Response</h3>
+        <pre>[{"Name": "The Dark Knight", "ReleaseDate": "2008-07-18", "Rating": 9.0, "Director": "Christopher Nolan", "Genre": "Action, Crime, Drama"}]</pre>
+    </div>
+        <!-- (4) Retrieve info of a specific movie -->
+        <div class="endpoint">
+            <h2>4. Retrieve Specific Movie Information</h2>
+            <h3>GET /:Name</h3>
+            <p>Retrieves information of a specific movie by its name.</p>
+            <h3>Request Parameters</h3>
+            <p><strong>Name</strong> (path parameter)</p>
+            <h3>Sample Response</h3>
+            <pre>{"Name": "Interstellar", "ReleaseDate": "2014-11-07", "Rating": 8.6, "Director": "Christopher Nolan", "Genre": "Adventure, Drama, Sci-Fi"}</pre>
+        </div>
+        
+        <!-- (5) Insert a new record by movie name -->
+        <div class="endpoint">
+            <h2>5. Insert a New Movie Record</h2>
+            <h3>POST /:Name</h3>
+            <p>Inserts a new record into the Movies table.</p>
+            <h3>Request Body Example</h3>
+            <pre>{
+        "Name": "Dunkirk",
+        "ReleaseDate": "2017-07-21",
+        "Rating": 7.9,
+        "Director": "Christopher Nolan",
+        "Genre": "Action, Drama, History"
+    }</pre>
+            <h3>Sample Response</h3>
+            <pre>{"Success": "Successful: Record was added!."}</pre>
+        </div>
+        
+        <!-- (6) Update an existing record by movie name -->
+        <div class="endpoint">
+            <h2>6. Update an Existing Movie Record</h2>
+            <h3>PUT /:Name</h3>
+            <p>Updates an existing movie record by its name.</p>
+            <h3>Request Body Example</h3>
+            <pre>{
+        "Name": "Dunkirk",
+        "ReleaseDate": "2017-07-21",
+        "Rating": 8.0,
+        "Director": "Christopher Nolan",
+        "Genre": "Action, Drama, History"
+    }</pre>
+            <h3>Sample Response</h3>
+            <pre>{"Success": "Successful: Record was updated!."}</pre>
+        </div>
+        
+        <!-- (7) Delete a record by movie name -->
+        <div class="endpoint">
+            <h2>7. Delete a Movie Record</h2>
+            <h3>DELETE /:Name</h3>
+            <p>Deletes a movie record by its name.</p>
+            <h3>Request Parameters</h3>
+            <p><strong>Name</strong> (path parameter)</p>
+            <h3>Sample Response</h3>
+            <pre>{"Success": "Successful: Record was deleted!"}</pre>
+        </div>
+        
+    </body>
+    </html>
+    
+    
+</body>
+</html>
