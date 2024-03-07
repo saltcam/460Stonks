@@ -1,10 +1,10 @@
-
 const express = require("express")
 const cors = require("cors")
 // retrieve the MySQL DB Configuration Module
 const dbConnection = require("./config")
 // use this library for parsing HTTP body requests
 var bodyParser = require('body-parser');
+const https = require('https');
 
 
 var app = express(express.json); 
@@ -12,14 +12,71 @@ var app = express(express.json);
 app.use(cors());
 app.use(bodyParser.json());
 
-// ----------------------------------------------
-// Ref: https://expressjs.com/en/4x/api.html#app
 
 
-// (1) Retrieve all records in Movies table
-// root URI: http://localhost:2000/
-app.get('/', (request, response) => {
-    const sqlQuery = "SELECT * FROM Movies;";
+
+
+// (1) Retrieves stock info based on inputted stock symbol. used in Service.js
+app.get('/stock-info/:symbol', (req, res) => {
+    const { symbol } = req.params;
+    const ALPHA_VANTAGE_API_KEY = 'cn6i6k1r01qt2at49vtgcn6i6k1r01qt2at49vu0';
+    const url = `https://www.alphavantage.co/query?function=GLOBAL_QUOTE&symbol=${symbol}&apikey=${ALPHA_VANTAGE_API_KEY}`;
+
+    https.get(url, (apiRes) => {
+        let data = '';
+
+        apiRes.on('data', (chunk) => {
+            data += chunk;
+        });
+
+        apiRes.on('end', () => {
+            try {
+                const parsedData = JSON.parse(data);
+                res.json(parsedData);
+            } catch (e) {
+                res.status(500).json({ message: 'Error parsing JSON response from Alpha Vantage' });
+            }
+        });
+
+    }).on('error', (e) => {
+        console.error(`Got error: ${e.message}`);
+        res.status(500).json({ message: 'Error fetching stock information from Alpha Vantage' });
+    });
+});
+
+
+// (2) Retrieves all stock information to display the stock price fluctuation graph. Used in Stock.js
+app.get('/stock-graph/:symbol', (req, res) => {
+    const { symbol } = req.params;
+    const ALPHA_VANTAGE_API_KEY = '8XSVL3X8346AJ8Q7';
+    const url = `https://www.alphavantage.co/query?function=TIME_SERIES_DAILY&symbol=${symbol}&outputsize=compact&apikey=${ALPHA_VANTAGE_API_KEY}`;
+
+    https.get(url, (apiRes) => {
+        let data = '';
+
+        apiRes.on('data', (chunk) => {
+            data += chunk;
+        });
+
+        apiRes.on('end', () => {
+            try {
+                const parsedData = JSON.parse(data);
+                res.json(parsedData);
+            } catch (e) {
+                res.status(500).json({ message: 'Error parsing JSON response from Alpha Vantage' });
+            }
+        });
+
+    }).on('error', (e) => {
+        console.error(`Got error: ${e.message}`);
+        res.status(500).json({ message: 'Error fetching stock information from Alpha Vantage' });
+    });
+});
+
+
+// (3) Retrieves all records in Stock table (all the current user's stocks)
+app.get('/owned-stocks', (request, response) => {
+    const sqlQuery = "SELECT * FROM Stocks;";
     dbConnection.query(sqlQuery, (err, result) => {
     if (err) {
     return response.status(400).json({Error: "Error in the SQL statement. Please check."});
@@ -30,62 +87,49 @@ app.get('/', (request, response) => {
 });
 
 
-// (2) Retrieve all records in Movies table sorted from highest ranking to lowest
-// root URI: http://localhost:2000/
-app.get('/movies/sorted-by-rating', (request, response) => {
-    const sqlQuery = "SELECT * FROM Movies ORDER BY Rating DESC;";
-    dbConnection.query(sqlQuery, (err, result) => {
-        if (err) {
-            return response.status(400).json({Error: "Error in the SQL statement. Please check."});
-        }
-        response.setHeader('SQLQuery', sqlQuery); // Optionally, send a custom header attribute
-        return response.status(200).json(result);
-    });
-});
-
-
-// (3) Search Movies by Genre
-// root URI: http://localhost:2000/
-app.get('/movies/search', (request, response) => {
-    const genre = request.query.genre; // Get the genre from query parameters
-    if (!genre) {
-        return response.status(400).json({Error: "No genre specified"});
-    }
-
-    const sqlQuery = "SELECT * FROM Movies WHERE Genre = ?;";
-    dbConnection.query(sqlQuery, [genre], (err, result) => {
-        if (err) {
-            return response.status(500).json({Error: "Error executing SQL query"});
-        }
-        if (result.length === 0) {
-            return response.status(404).json({Message: "No movies found for this genre"});
-        }
-        return response.status(200).json(result);
-    });
-});
-
-
-
-// (4) Retrieve info of a specific movie 
-// name URI: http://localhost:2000/Name
-app.get('/:Name', (request, response) => {
-    const movie = request.params.Name;
-    const sqlQuery = "SELECT * FROM Movies WHERE Name = '" + movie +"';";
+// (4) Adds all owned stock prices - portfolio value
+app.get('/portfolio-value', (request, response) => {
+    const sqlQuery = "SELECT SUM(CurrentPrice) AS TotalCurrentPrice FROM Stocks;";
     dbConnection.query(sqlQuery, (err, result) => {
     if (err) {
     return response.status(400).json({Error: "Error in the SQL statement. Please check."});
     }
-    response.setHeader('MovieName', movie); // send a custom
+    response.setHeader('SQLQuery', sqlQuery); // send a custom header attribute
     return response.status(200).json(result);
     });
 });
 
-// (5) insert a new record by movie name
-// name URI: http://localhost:2000/Name
-app.post('/:Name', (request, response) => {
-    const sqlQuery = 'INSERT INTO MOVIES VALUES (?);';
-    const values = [request.body.Name, request.body.ReleaseDate, request.body.Rating,
-     request.body.Director, request.body.Genre];
+
+// (5) Returns the number all owned stock prices 
+app.get('/stock-count', (request, response) => {
+    const sqlQuery = "SELECT COUNT(*) AS TotalRows FROM Stocks;";
+    dbConnection.query(sqlQuery, (err, result) => {
+    if (err) {
+    return response.status(400).json({Error: "Error in the SQL statement. Please check."});
+    }
+    response.setHeader('SQLQuery', sqlQuery); 
+    return response.status(200).json(result);
+    });
+});
+
+
+// (6) Retrieves Account Login info. response is Username and Password in JSON format
+app.get('/portfolio-value', (request, response) => {
+    const sqlQuery = "SELECT Username, Password FROM users;";
+    dbConnection.query(sqlQuery, (err, result) => {
+    if (err) {
+    return response.status(400).json({Error: "Error in the SQL statement. Please check."});
+    }
+    response.setHeader('SQLQuery', sqlQuery); 
+    return response.status(200).json(result);
+    });
+});
+
+
+// (7) insert a new stock by stock symbol
+app.post('/buy-stock', (request, response) => {
+    const sqlQuery = 'INSERT INTO Stock VALUES (?);';
+    const values = [request.body.Symbol, request.body.PriceBought, request.body.CurrentPrice];
     dbConnection.query(sqlQuery, [values], (err, result) => {
     if (err) {
     return response.status(400).json({Error: "Failed: Record was not added."});
@@ -94,39 +138,69 @@ app.post('/:Name', (request, response) => {
     });
 });
 
-// (6) update an existing record by movie name
-// name URI: http://localhost:port/Name
-app.put('/:Name', (request, response) => {
-    const name = request.params.Name;
-    const sqlQuery = `UPDATE MOVIES SET Name = ?, ReleaseDate = ?,
-    Rating = ?, Director = ?, Genre = ?
-    WHERE NAME = ? ;`;
-    const values = [request.body.Name, request.body.ReleaseDate, request.body.Rating,
-     request.body.Director, request.body.Genre];
-    console.log(sqlQuery); // for debugging purposes:
-    dbConnection.query(sqlQuery, [...values, name], (err, result) => {
-    if (err) {
-    return response.status(400).json({Error: "Failed: Record was not added."});
-    }
-    return response.status(200).json({Success: "Successful: Record was updated!."});
-    });
-});
 
-// (7) Delete a record by movie name
-// movie URI: http://localhost:port/Name
-app.delete('/:Name', (request, response) => {
-    const name = request.params.Name;
-    const sqlQuery = "DELETE FROM Movies WHERE NAME = ? ; ";
-    dbConnection.query(sqlQuery, name, (err, result) => {
+// (8) Delete a stock, called when user sells a stock
+app.delete('/sell-stock', (request, response) => {
+    const Symbol = request.params.Symbol;
+    const sqlQuery = "DELETE FROM Stocks WHERE Symbol = ? ; ";
+    dbConnection.query(sqlQuery, Symbol, (err, result) => {
     if (err) {
     return response.status(400).json({ Error: "Failed: Record was not deleted" });
     }
     return response.status(200).json({ Success: "Succcessful: Record was deleted!" });
     });
-    });
+});
 
-app.listen(2000, () => {
-    console.log("Express server is running and listening");
-}); 
+
+// (9) update the current price of an owned stock 
+app.put('/update-current-price/:Symbol', (request, response) => {
+    const Symbol = request.params.Symbol; 
+    const sqlQuery = `UPDATE Stocks SET CurrentPrice = ? WHERE Name = ?;`;
+    const values = [request.body.CurrentPrice, Symbol];
+
+    dbConnection.query(sqlQuery, values, (err, result) => {
+        if (err) {
+            console.error(err);
+            return response.status(400).json({Error: "Failed: Record was not updated."});
+        }
+        if (result.affectedRows === 0) {
+            return response.status(404).json({Error: "Not Found: Stock was not found."});
+        }
+        return response.status(200).json({Success: "Successful: Record was updated!"});
+    });
+});
+
+
+// (10) update the password to something new 
+app.put('/update-password', (request, response) => {
+    const newPassword = request.body.Password;
+    const sqlQuery = `UPDATE users SET Password = ?;`;
+    dbConnection.query(sqlQuery, [newPassword], (err, result) => {
+        if (err) {
+            console.error(err);
+            return response.status(400).json({Error: "Failed: Password was not updated."});
+        }
+        return response.status(200).json({Success: "Successful: Password was updated!"});
+    });
+});
+
+
+// (11) update the buying power, called when a stock is bought or sold 
+app.put('/update-buying-power', (request, response) => {
+    const newBuyingPower = request.body.BuyingPower; 
+    const sqlQuery = `UPDATE users SET BuyingPower = ?;`;
+    dbConnection.query(sqlQuery, [newBuyingPower], (err, result) => {
+        if (err) {
+            console.error(err);
+            return response.status(400).json({Error: "Failed: BuyingPower was not updated."});
+        }
+        return response.status(200).json({Success: "Successful: BuyingPower was updated!"});
+    });
+});
+
+
+// app.listen(2000, () => {
+//     console.log("Express server is running and listening");
+// }); 
 
 
