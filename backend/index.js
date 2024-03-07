@@ -199,8 +199,8 @@ app.put('/update-buying-power', (request, response) => {
 });
 
 
-// app.listen(2000, () => {
-//     console.log("Express server is running and listening");
-// }); 
+ app.listen(2000, () => {
+     console.log("Express server is running and listening");
+ }); 
 
 
