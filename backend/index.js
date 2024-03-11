@@ -129,13 +129,14 @@ app.get('/username-password', (request, response) => {
 
 // (7) insert a new stock by stock symbol
 app.post('/buy-stock', (request, response) => {
-    const sqlQuery = 'INSERT INTO Stock VALUES (?);';
+    const sqlQuery = 'INSERT INTO Stocks VALUES (?);'; // Adjusted to match columns
     const values = [request.body.Symbol, request.body.PriceBought, request.body.CurrentPrice];
-    dbConnection.query(sqlQuery, [values], (err, result) => {
-    if (err) {
-    return response.status(400).json({Error: "Failed: Record was not added."});
-    }
-    return response.status(200).json({Success: "Successful: Record was added!."});
+    dbConnection.query(sqlQuery, [values], (err, result) => { // Correct parameter passing
+        if (err) {
+            console.error(err); // Logging the error might give you more insight
+            return response.status(400).json({Error: "Failed: Record was not added."});
+        }
+        return response.status(200).json({Success: "Successful: Record was added!."});
     });
 });
 
