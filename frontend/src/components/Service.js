@@ -13,6 +13,11 @@ function Service({ setStockSymbol }) {
     const [stockData, setStockData] = useState(null);
     const [validSymbol, setValidSymbol] = useState(false);
     const [buyingPower, setBuyingPower] = useState(0);
+    const [purchasedStock, setPurchase] = useState({
+        Symbol: "",
+        PriceBought: "",
+        CurrentPrice: ""
+    });
 
     useEffect(() => {
         const fetchData = async () => {
@@ -46,12 +51,17 @@ function Service({ setStockSymbol }) {
             const response = await axios.get('http://localhost:2000/check-buying-power');
             const buyingPowerData = response.data; // Assuming the response contains an array with one object
             if (buyingPowerData.length > 0) {
-                setBuyingPower(buyingPowerData[0].BuyingPower);
-                console.log("buyingPower: " + buyingPowerData[0].BuyingPower + "Price: " + stockData['05. price']);
+                setBuyingPower(parseFloat(buyingPowerData[0].BuyingPower));
+                
+                //const stockPrice = parseFloat(stockData['05. price']);
+                const stockPrice = 191.15;
 
-                const stockPrice = parseFloat(stockData['05. price']);
-                if (buyingPower >= stockPrice) {
+                const fetchedBuyingPower = parseFloat(buyingPowerData[0].BuyingPower);
+                console.log("buyingPower: " + fetchedBuyingPower + "  Price: " + stockPrice);
+
+                if (fetchedBuyingPower >= stockPrice) {
                     canBuy = true;
+                    console.log("CanBuy: " + canBuy);
                 } else {
                     alert("Insufficient funds to buy the stock.");
                 }
@@ -62,14 +72,25 @@ function Service({ setStockSymbol }) {
 
         if (canBuy) {
             try {
-                const stockSymbol = stockData['01. symbol'];
-                const priceBought = stockData['05. price'];
-                const currentPrice = stockData['05. price'];
+
+                setPurchase({
+                    Symbol: inputValue,
+                    PriceBought: "191.15",
+                    CurrentPrice: "191.15"
+                  });
+
+                const stockSymbol = inputValue;
+                const priceBought = 191.15;
+                const currentPrice = 191.15;
+
+                // const stockSymbol = stockData['01. symbol'];
+                // const priceBought = stockData['05. price'];
+                // const currentPrice = stockData['05. price'];
 
                 await axios.post('http://localhost:2000/buy-stock', {
-                    Symbol: stockSymbol,
-                    PriceBought: priceBought,
-                    CurrentPrice: currentPrice
+                    Symbol: inputValue,
+                    PriceBought: "191.15",
+                    CurrentPrice: "191.15"
                 });
 
 
@@ -79,6 +100,7 @@ function Service({ setStockSymbol }) {
                     BuyingPower: newBuyingPower
                 });
                 setBuyingPower(newBuyingPower)
+                console.log("new buyingPower: " + buyingPower);
                 alert("Stock purchase successful!");
 
 
@@ -125,7 +147,7 @@ function Service({ setStockSymbol }) {
                         </div>
                     )}
                     <div className="card-body">
-                        <button className="btn btn-primary mr-2" disabled={!validSymbol || !inputValue} onClick={handleBuy}>Buy</button>
+                        <button className="btn btn-primary mr-2" disabled={/*!validSymbol || */!inputValue} onClick={handleBuy}>Buy</button>
                     </div>
                     
                 </div>
