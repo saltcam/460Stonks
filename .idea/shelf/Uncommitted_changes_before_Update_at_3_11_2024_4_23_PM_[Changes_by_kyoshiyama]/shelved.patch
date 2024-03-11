@@ -1,0 +1,153 @@
+Index: backend/index.js
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+>const express = require(\"express\")\r\nconst cors = require(\"cors\")\r\n// retrieve the MySQL DB Configuration Module\r\nconst dbConnection = require(\"./config\")\r\n// use this library for parsing HTTP body requests\r\nvar bodyParser = require('body-parser');\r\nconst https = require('https');\r\nconst mainRoute = require('./routes/mainRoute');\r\nconst accountRoute = require('./routes/accountRoute');\r\n\r\nvar app = express(express.json); \r\n\r\napp.use(cors());\r\napp.use(bodyParser.json());\r\n\r\napp.use('/', mainRoute);\r\napp.use('/', accountRoute);\r\n\r\n\r\n// (1) Retrieves stock info based on inputted stock symbol. used in Service.js\r\napp.get('/stock-info/:symbol', (req, res) => {\r\n    const { symbol } = req.params;\r\n    const ALPHA_VANTAGE_API_KEY = 'cn6i6k1r01qt2at49vtgcn6i6k1r01qt2at49vu0';\r\n    const url = `https://www.alphavantage.co/query?function=GLOBAL_QUOTE&symbol=${symbol}&apikey=${ALPHA_VANTAGE_API_KEY}`;\r\n\r\n    https.get(url, (apiRes) => {\r\n        let data = '';\r\n\r\n        apiRes.on('data', (chunk) => {\r\n            data += chunk;\r\n        });\r\n\r\n        apiRes.on('end', () => {\r\n            try {\r\n                const parsedData = JSON.parse(data);\r\n                res.json(parsedData);\r\n            } catch (e) {\r\n                res.status(500).json({ message: 'Error parsing JSON response from Alpha Vantage' });\r\n            }\r\n        });\r\n\r\n    }).on('error', (e) => {\r\n        console.error(`Got error: ${e.message}`);\r\n        res.status(500).json({ message: 'Error fetching stock information from Alpha Vantage' });\r\n    });\r\n});\r\n\r\n\r\n// (2) Retrieves all stock information to display the stock price fluctuation graph. Used in Stock.js\r\napp.get('/stock-graph/:symbol', (req, res) => {\r\n    const { symbol } = req.params;\r\n    const ALPHA_VANTAGE_API_KEY = '8XSVL3X8346AJ8Q7';\r\n    const url = `https://www.alphavantage.co/query?function=TIME_SERIES_DAILY&symbol=${symbol}&outputsize=compact&apikey=${ALPHA_VANTAGE_API_KEY}`;\r\n\r\n    https.get(url, (apiRes) => {\r\n        let data = '';\r\n\r\n        apiRes.on('data', (chunk) => {\r\n            data += chunk;\r\n        });\r\n\r\n        apiRes.on('end', () => {\r\n            try {\r\n                const parsedData = JSON.parse(data);\r\n                res.json(parsedData);\r\n            } catch (e) {\r\n                res.status(500).json({ message: 'Error parsing JSON response from Alpha Vantage' });\r\n            }\r\n        });\r\n\r\n    }).on('error', (e) => {\r\n        console.error(`Got error: ${e.message}`);\r\n        res.status(500).json({ message: 'Error fetching stock information from Alpha Vantage' });\r\n    });\r\n});\r\n\r\n\r\n// (3) Retrieves all records in Stock table (all the current user's stocks)\r\napp.get('/owned-stocks', (request, response) => {\r\n    const sqlQuery = \"SELECT * FROM Stocks;\";\r\n    dbConnection.query(sqlQuery, (err, result) => {\r\n    if (err) {\r\n    return response.status(400).json({Error: \"Error in the SQL statement. Please check.\"});\r\n    }\r\n    response.setHeader('SQLQuery', sqlQuery); // send a custom header attribute\r\n    return response.status(200).json(result);\r\n    });\r\n});\r\n\r\n\r\n// (4) Adds all owned stock prices - portfolio value\r\napp.get('/portfolio-value', (request, response) => {\r\n    const sqlQuery = \"SELECT SUM(CurrentPrice) AS TotalCurrentPrice FROM Stocks;\";\r\n    dbConnection.query(sqlQuery, (err, result) => {\r\n    if (err) {\r\n    return response.status(400).json({Error: \"Error in the SQL statement. Please check.\"});\r\n    }\r\n    response.setHeader('SQLQuery', sqlQuery); // send a custom header attribute\r\n    return response.status(200).json(result);\r\n    });\r\n});\r\n\r\n\r\n// (5) Returns the number all owned stock prices \r\napp.get('/stock-count', (request, response) => {\r\n    const sqlQuery = \"SELECT COUNT(*) AS TotalRows FROM Stocks;\";\r\n    dbConnection.query(sqlQuery, (err, result) => {\r\n    if (err) {\r\n    return response.status(400).json({Error: \"Error in the SQL statement. Please check.\"});\r\n    }\r\n    response.setHeader('SQLQuery', sqlQuery); \r\n    return response.status(200).json(result);\r\n    });\r\n});\r\n\r\n\r\n// (6) Retrieves Account Login info. response is Username and Password in JSON format\r\napp.get('/username-password', (request, response) => {\r\n    const sqlQuery = \"SELECT Username, Password FROM users;\";\r\n    dbConnection.query(sqlQuery, (err, result) => {\r\n    if (err) {\r\n    return response.status(400).json({Error: \"Error in the SQL statement. Please check.\"});\r\n    }\r\n    response.setHeader('SQLQuery', sqlQuery); \r\n    return response.status(200).json(result);\r\n    });\r\n});\r\n\r\n\r\n// (7) insert a new stock by stock symbol\r\napp.post('/buy-stock', (request, response) => {\r\n    const sqlQuery = 'INSERT INTO Stock VALUES (?);';\r\n    const values = [request.body.Symbol, request.body.PriceBought, request.body.CurrentPrice];\r\n    dbConnection.query(sqlQuery, [values], (err, result) => {\r\n    if (err) {\r\n    return response.status(400).json({Error: \"Failed: Record was not added.\"});\r\n    }\r\n    return response.status(200).json({Success: \"Successful: Record was added!.\"});\r\n    });\r\n});\r\n\r\n\r\n// (8) Delete a stock, called when user sells a stock\r\napp.delete('/sell-stock', (request, response) => {\r\n    const Symbol = request.params.Symbol;\r\n    const sqlQuery = \"DELETE FROM Stocks WHERE Symbol = ? ; \";\r\n    dbConnection.query(sqlQuery, Symbol, (err, result) => {\r\n    if (err) {\r\n    return response.status(400).json({ Error: \"Failed: Record was not deleted\" });\r\n    }\r\n    return response.status(200).json({ Success: \"Succcessful: Record was deleted!\" });\r\n    });\r\n});\r\n\r\n\r\n// (9) update the current price of an owned stock \r\napp.put('/update-current-price/:Symbol', (request, response) => {\r\n    const Symbol = request.params.Symbol; \r\n    const sqlQuery = `UPDATE Stocks SET CurrentPrice = ? WHERE Name = ?;`;\r\n    const values = [request.body.CurrentPrice, Symbol];\r\n\r\n    dbConnection.query(sqlQuery, values, (err, result) => {\r\n        if (err) {\r\n            console.error(err);\r\n            return response.status(400).json({Error: \"Failed: Record was not updated.\"});\r\n        }\r\n        if (result.affectedRows === 0) {\r\n            return response.status(404).json({Error: \"Not Found: Stock was not found.\"});\r\n        }\r\n        return response.status(200).json({Success: \"Successful: Record was updated!\"});\r\n    });\r\n});\r\n\r\n\r\n// (10) update the password to something new \r\napp.put('/update-password', (request, response) => {\r\n    const newPassword = request.body.Password;\r\n    const sqlQuery = `UPDATE users SET Password = ?;`;\r\n    dbConnection.query(sqlQuery, [newPassword], (err, result) => {\r\n        if (err) {\r\n            console.error(err);\r\n            return response.status(400).json({Error: \"Failed: Password was not updated.\"});\r\n        }\r\n        return response.status(200).json({Success: \"Successful: Password was updated!\"});\r\n    });\r\n});\r\n\r\n\r\n// (11) update the buying power, called when a stock is bought or sold \r\napp.put('/update-buying-power', (request, response) => {\r\n    const newBuyingPower = request.body.BuyingPower; \r\n    const sqlQuery = `UPDATE users SET BuyingPower = ?;`;\r\n    dbConnection.query(sqlQuery, [newBuyingPower], (err, result) => {\r\n        if (err) {\r\n            console.error(err);\r\n            return response.status(400).json({Error: \"Failed: BuyingPower was not updated.\"});\r\n        }\r\n        return response.status(200).json({Success: \"Successful: BuyingPower was updated!\"});\r\n    });\r\n});\r\n\r\n\r\n// (12) Retrieves Account Login info. response is Username and Password in JSON format\r\napp.get('/check-buying-power', (request, response) => {\r\n    const sqlQuery = \"SELECT BuyingPower FROM users;\";\r\n    dbConnection.query(sqlQuery, (err, result) => {\r\n    if (err) {\r\n    return response.status(400).json({Error: \"Error in the SQL statement. Please check.\"});\r\n    }\r\n    response.setHeader('SQLQuery', sqlQuery); \r\n    return response.status(200).json(result);\r\n    });\r\n});\r\n\r\n\r\n//  app.listen(2000, () => {\r\n//      console.log(\"Express server is running and listening\");\r\n//  }); \r\n\r\n\r\n// const express = require('express');\r\n// const cors = require('cors');\r\n// const bodyParser = require('body-parser');\r\nconst swaggerJsdoc = require('swagger-jsdoc');\r\nconst swaggerUi = require('swagger-ui-express');\r\n\r\n// const mainRoute = require('./routes/mainRoute');\r\n// const accountRoute = require('./routes/accountRoute');\r\n\r\n// const app = express();\r\n\r\n// app.use(cors());\r\n// app.use(bodyParser.json());\r\n\r\n// Swagger configuration\r\nconst options = {\r\n    definition: {\r\n        openapi: '3.0.0',\r\n        info: {\r\n            title: 'Stonks Street API Documentation',\r\n            version: '1.0.0',\r\n            description: 'An API for our Stock Market Stimulator.',\r\n            servers: ['http://localhost:' + 2000]\r\n\r\n        },\r\n    },\r\n    apis: ['./routes/*.js'], // Path to the API routes\r\n};\r\n\r\nconst specs = swaggerJsdoc(options);\r\napp.use('/api-docs', swaggerUi.serve, swaggerUi.setup(specs));\r\n\r\n// Mounting routes\r\napp.use('/', mainRoute);\r\napp.use('/', accountRoute);\r\n\r\nconst PORT = process.env.PORT || 2000;\r\napp.listen(PORT, () => {\r\n    console.log(`Server is running on port ${PORT}`);\r\n});\r\n\r\n
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/backend/index.js b/backend/index.js
+--- a/backend/index.js	(revision e0d971b1e6f45d401e2dda465d824878bca879b4)
++++ b/backend/index.js	(date 1710199279249)
+@@ -129,13 +129,14 @@
+ 
+ // (7) insert a new stock by stock symbol
+ app.post('/buy-stock', (request, response) => {
+-    const sqlQuery = 'INSERT INTO Stock VALUES (?);';
+-    const values = [request.body.Symbol, request.body.PriceBought, request.body.CurrentPrice];
+-    dbConnection.query(sqlQuery, [values], (err, result) => {
+-    if (err) {
+-    return response.status(400).json({Error: "Failed: Record was not added."});
+-    }
+-    return response.status(200).json({Success: "Successful: Record was added!."});
++    const sqlQuery = 'INSERT INTO Stocks VALUES (?);'; // Adjusted to match columns
++    const values = [request.body.symbol, request.body.PriceBought, request.body.CurrentPrice];
++    dbConnection.query(sqlQuery, [values], (err, result) => { // Correct parameter passing
++        if (err) {
++            console.error(err); // Logging the error might give you more insight
++            return response.status(400).json({Error: "Failed: Record was not added."});
++        }
++        return response.status(200).json({Success: "Successful: Record was added!."});
+     });
+ });
+ 
+Index: frontend/src/components/Service.js
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+>import React, { useState, useEffect } from 'react';\r\nimport axios from 'axios';\r\nimport Stock from './Stock';\r\n\r\nfunction Service({ setStockSymbol }) {\r\n    const [inputValue, setInputValue] = useState('');\r\n\r\n    const handleInputChange = (e) => {\r\n        setStockSymbol(e.target.value.toUpperCase()); // Inform the parent component of the change\r\n      };\r\n\r\n\r\n    const [stockData, setStockData] = useState(null);\r\n    const [validSymbol, setValidSymbol] = useState(false);\r\n    const [buyingPower, setBuyingPower] = useState(0);\r\n\r\n    useEffect(() => {\r\n        const fetchData = async () => {\r\n            if (inputValue.length >= 1) {\r\n                try {\r\n                    const response = await axios.get(`http://localhost:2000/stock-info/${inputValue}`);\r\n                    const data = response.data['Global Quote'];\r\n                    console.log(data);\r\n                    if (data) {\r\n                        setStockData(data);\r\n                        setValidSymbol(true);\r\n                    } else {\r\n                        setStockData(null);\r\n                        setValidSymbol(false);\r\n                    }\r\n                } catch (error) {\r\n                    console.error('Error fetching stock data:', error);\r\n                    setStockData(null);\r\n                    setValidSymbol(false);\r\n                }\r\n            }\r\n        };\r\n\r\n        fetchData();\r\n    }, [inputValue]);\r\n\r\n    const handleBuy = async () => {\r\n        let canBuy = false;\r\n        try {\r\n            // Fetching buying power from the backend\r\n            const response = await axios.get('http://localhost:2000/check-buying-power');\r\n            const buyingPowerData = response.data; // Assuming the response contains an array with one object\r\n            if (buyingPowerData.length > 0) {\r\n                setBuyingPower(buyingPowerData[0].BuyingPower);\r\n                console.log(\"buyingPower: \" + buyingPowerData[0].BuyingPower + \"Price: \" + stockData['05. price']);\r\n\r\n                const stockPrice = parseFloat(stockData['05. price']);\r\n                if (buyingPower >= stockPrice) {\r\n                    canBuy = true;\r\n                } else {\r\n                    alert(\"Insufficient funds to buy the stock.\");\r\n                }\r\n            }\r\n        } catch (error) {\r\n            console.error('Error fetching buying power:', error);\r\n        }\r\n\r\n        if (canBuy) {\r\n            try {\r\n                const stockSymbol = stockData['01. symbol'];\r\n                const priceBought = stockData['05. price'];\r\n                const currentPrice = stockData['05. price'];\r\n\r\n                await axios.post('http://localhost:2000/buy-stock', {\r\n                    Symbol: stockSymbol,\r\n                    PriceBought: priceBought,\r\n                    CurrentPrice: currentPrice\r\n                });\r\n\r\n\r\n                const newBuyingPower = buyingPower - priceBought;\r\n\r\n                await axios.put('http://localhost:2000/update-buying-power', {\r\n                    BuyingPower: newBuyingPower\r\n                });\r\n                setBuyingPower(newBuyingPower)\r\n                alert(\"Stock purchase successful!\");\r\n\r\n\r\n            } catch (error) {\r\n                console.error('Error buying stock:', error);\r\n                alert(\"Failed to purchase stock.\");\r\n            }\r\n        }\r\n    };\r\n\r\n    return (\r\n        <div className=\"container searchContainer\">\r\n            <div className=\"card mb-3\">\r\n                <h3 className=\"card-header\">Stock Market Data</h3>\r\n                <div className=\"card-body\">\r\n                    <h5 className=\"card-title\">Live stock data</h5>\r\n                </div>\r\n                <div className=\"card-body\">\r\n                    <div className=\"form-group\">\r\n                        <input\r\n                            type=\"text\"\r\n                            value={inputValue}\r\n                            onChange={(e) => setInputValue(e.target.value.toUpperCase())}\r\n                            className=\"form-control\"\r\n                            autoComplete='off'\r\n                            placeholder=\"Enter stock symbol...\" />\r\n                    </div>\r\n                </div>\r\n                <div className=\"card-footer text-muted\">\r\n                    {stockData && (\r\n                        <div className=\"card-body\">\r\n                            <p className=\"card-text\">\r\n                                <strong>Symbol:</strong> {stockData['01. symbol']}\r\n                            </p>\r\n                            <p className=\"card-text\">\r\n                                <strong>Price:</strong> {stockData['05. price']}\r\n                            </p>\r\n                            <p className=\"card-text\">\r\n                                <strong>Last Refreshed:</strong> {stockData['07. latest trading day']}\r\n                            </p>\r\n                            <Stock \r\n                                StockSymbol = {inputValue} \r\n                            />              \r\n                        </div>\r\n                    )}\r\n                    <div className=\"card-body\">\r\n                        <button className=\"btn btn-primary mr-2\" disabled={!validSymbol || !inputValue} onClick={handleBuy}>Buy</button>\r\n                    </div>\r\n                    \r\n                </div>\r\n            </div>\r\n            \r\n        </div>\r\n        \r\n        \r\n    );\r\n}\r\n\r\nexport default Service;\r\n\r\n
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/frontend/src/components/Service.js b/frontend/src/components/Service.js
+--- a/frontend/src/components/Service.js	(revision e0d971b1e6f45d401e2dda465d824878bca879b4)
++++ b/frontend/src/components/Service.js	(date 1710199045968)
+@@ -7,12 +7,17 @@
+ 
+     const handleInputChange = (e) => {
+         setStockSymbol(e.target.value.toUpperCase()); // Inform the parent component of the change
+-      };
++    };
+ 
+ 
+     const [stockData, setStockData] = useState(null);
+     const [validSymbol, setValidSymbol] = useState(false);
+     const [buyingPower, setBuyingPower] = useState(0);
++    const [purchasedStock, setPurchase] = useState({
++        Symbol: "",
++        PriceBought: "",
++        CurrentPrice: ""
++    });
+ 
+     useEffect(() => {
+         const fetchData = async () => {
+@@ -46,12 +51,17 @@
+             const response = await axios.get('http://localhost:2000/check-buying-power');
+             const buyingPowerData = response.data; // Assuming the response contains an array with one object
+             if (buyingPowerData.length > 0) {
+-                setBuyingPower(buyingPowerData[0].BuyingPower);
+-                console.log("buyingPower: " + buyingPowerData[0].BuyingPower + "Price: " + stockData['05. price']);
++                setBuyingPower(parseFloat(buyingPowerData[0].BuyingPower));
++
++                //const stockPrice = parseFloat(stockData['05. price']);
++                const stockPrice = 191.15;
+ 
+-                const stockPrice = parseFloat(stockData['05. price']);
+-                if (buyingPower >= stockPrice) {
++                const fetchedBuyingPower = parseFloat(buyingPowerData[0].BuyingPower);
++                console.log("buyingPower: " + fetchedBuyingPower + "  Price: " + stockPrice);
++
++                if (fetchedBuyingPower >= stockPrice) {
+                     canBuy = true;
++                    console.log("CanBuy: " + canBuy);
+                 } else {
+                     alert("Insufficient funds to buy the stock.");
+                 }
+@@ -62,15 +72,22 @@
+ 
+         if (canBuy) {
+             try {
+-                const stockSymbol = stockData['01. symbol'];
+-                const priceBought = stockData['05. price'];
+-                const currentPrice = stockData['05. price'];
+ 
+-                await axios.post('http://localhost:2000/buy-stock', {
+-                    Symbol: stockSymbol,
+-                    PriceBought: priceBought,
+-                    CurrentPrice: currentPrice
++                setPurchase({
++                    Symbol: inputValue,
++                    PriceBought: "191.15",
++                    CurrentPrice: "191.15"
+                 });
++
++                const stockSymbol = inputValue;
++                const priceBought = 191.15;
++                const currentPrice = 191.15;
++
++                // const stockSymbol = stockData['01. symbol'];
++                // const priceBought = stockData['05. price'];
++                // const currentPrice = stockData['05. price'];
++
++                await axios.post('http://localhost:2000/buy-stock', purchasedStock);
+ 
+ 
+                 const newBuyingPower = buyingPower - priceBought;
+@@ -79,6 +96,7 @@
+                     BuyingPower: newBuyingPower
+                 });
+                 setBuyingPower(newBuyingPower)
++                console.log("new buyingPower: " + buyingPower);
+                 alert("Stock purchase successful!");
+ 
+ 
+@@ -119,23 +137,22 @@
+                             <p className="card-text">
+                                 <strong>Last Refreshed:</strong> {stockData['07. latest trading day']}
+                             </p>
+-                            <Stock 
+-                                StockSymbol = {inputValue} 
+-                            />              
++                            <Stock
++                                StockSymbol = {inputValue}
++                            />
+                         </div>
+                     )}
+                     <div className="card-body">
+-                        <button className="btn btn-primary mr-2" disabled={!validSymbol || !inputValue} onClick={handleBuy}>Buy</button>
++                        <button className="btn btn-primary mr-2" disabled={/*!validSymbol || */!inputValue} onClick={handleBuy}>Buy</button>
+                     </div>
+-                    
++
+                 </div>
+             </div>
+-            
++
+         </div>
+-        
+-        
++
++
+     );
+ }
+ 
+ export default Service;
+-
