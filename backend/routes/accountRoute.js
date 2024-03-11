@@ -120,7 +120,7 @@ router.get('/stock-count', (request, response) => {
  * @swagger
  * 
  * {
-  "/portfolio-value": {
+  "/username-password": {
     "get": {
       "summary": "Retrieves account login information.",
       "description": "This endpoint retrieves the username and password of all user accounts.",
@@ -158,7 +158,7 @@ router.get('/stock-count', (request, response) => {
  */
 
 // (6) Retrieves Account Login info. response is Username and Password in JSON format
-router.get('/portfolio-value', (request, response) => {
+router.get('/username-password', (request, response) => {
     const sqlQuery = "SELECT Username, Password FROM users;";
     dbConnection.query(sqlQuery, (err, result) => {
     if (err) {
@@ -433,6 +433,38 @@ router.put('/update-buying-power', (request, response) => {
             return response.status(400).json({Error: "Failed: BuyingPower was not updated."});
         }
         return response.status(200).json({Success: "Successful: BuyingPower was updated!"});
+    });
+});
+
+/**
+ * @swagger
+ * /check-buying-power:
+ *   get:
+ *     summary: Retrieves the buying power of the user.
+ *     responses:
+ *       200:
+ *         description: Successful response with the buying power information.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 BuyingPower:
+ *                   type: number
+ *                   description: The current buying power of the user.
+ *       400:
+ *         description: Error in the SQL statement.
+ *
+ */
+// (12) Retrieves Account Login info. response is Username and Password in JSON format
+router.get('/check-buying-power', (request, response) => {
+    const sqlQuery = "SELECT BuyingPower FROM users;";
+    dbConnection.query(sqlQuery, (err, result) => {
+        if (err) {
+            return response.status(400).json({Error: "Error in the SQL statement. Please check."});
+        }
+        response.setHeader('SQLQuery', sqlQuery);
+        return response.status(200).json(result);
     });
 });
 

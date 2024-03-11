@@ -1,22 +1,41 @@
-import React from 'react';
+// import React from 'react';
+import navigate from "./Navigate";
+import React, { useState, useEffect } from "react";
+import axios from "axios";
 
 function MyAccount() {
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+        try {
+            const response = await axios.get(decodeURI("http://localhost:3000/"+ acc.userName))
+            // console.log(response.data);
+
+            navigate("/");
+        } catch (err) {
+            console.log("Error: " + err);
+        }
+    };
+
+    const [ acc, setAcc] = useState({
+        userName: "",
+        pass: ""
+    });
 
   return (
       <div className="container">
           <h1>My Account</h1>
-          <form action="">
+          <form onSubmit={handleSubmit}>
               <div className='mb-3'>
                   <label htmlFor="username">Username</label>
                   <p></p>
-                  <input type="username" placeholder='Enter Username'/>
+                  <input type="username" placeholder='Enter Username' name="userName"/>
               </div>
               <div className='mb-3'>
                   <label htmlFor="password">Password</label>
                   <p></p>
-                  <input type="password" placeholder='Enter Password'/>
+                  <input type="password" placeholder='Enter Password' name="password"/>
               </div>
-              <button className='btn btn-success'>Log in</button>
+              <button type="submit" className='btn btn-success'>Log in</button>
               <p></p>
               <button className='btn btn-success'>Create Account</button>
           </form>

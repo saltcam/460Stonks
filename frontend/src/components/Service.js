@@ -7,7 +7,7 @@ function Service({ setStockSymbol }) {
 
     const handleInputChange = (e) => {
         setStockSymbol(e.target.value.toUpperCase()); // Inform the parent component of the change
-      };
+    };
 
 
     const [stockData, setStockData] = useState(null);
@@ -52,7 +52,7 @@ function Service({ setStockSymbol }) {
             const buyingPowerData = response.data; // Assuming the response contains an array with one object
             if (buyingPowerData.length > 0) {
                 setBuyingPower(parseFloat(buyingPowerData[0].BuyingPower));
-                
+
                 //const stockPrice = parseFloat(stockData['05. price']);
                 const stockPrice = 191.15;
 
@@ -141,21 +141,21 @@ function Service({ setStockSymbol }) {
                             <p className="card-text">
                                 <strong>Last Refreshed:</strong> {stockData['07. latest trading day']}
                             </p>
-                            <Stock 
-                                StockSymbol = {inputValue} 
-                            />              
+                            <Stock
+                                StockSymbol = {inputValue}
+                            />
                         </div>
                     )}
                     <div className="card-body">
                         <button className="btn btn-primary mr-2" disabled={/*!validSymbol || */!inputValue} onClick={handleBuy}>Buy</button>
                     </div>
-                    
+
                 </div>
             </div>
-            
+
         </div>
-        
-        
+
+
     );
 }
 
