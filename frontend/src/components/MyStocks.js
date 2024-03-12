@@ -4,7 +4,8 @@ import {Link} from "react-router-dom";
 
 const MyStocks = () => {
 
-const [stocks, setStocks] = useState([]);
+    const [stocks, setStocks] = useState([]);
+    const [buyingPower, setBuyingPower] = useState(0);
 
     useEffect(() => {
         const getAllStocksInfo = async () => {
@@ -57,8 +58,8 @@ console.log("About to loop");
 
 
 
-    getAllStocksInfo();
-}, []);
+        getAllStocksInfo();
+    }, []);
 
     const handleSell = async (stock) => {
         let localBP = 0;
@@ -88,44 +89,60 @@ console.log("About to loop");
             } catch (error) {
                 console.error("Error selling stock:", error);
             }
+
+            if (sold) { // make sure the sell was successful before updating the buying power
+
+                try {
+                    console.log("new buying power: " + localBP);
+                    await axios.put('http://localhost:2000/update-buying-power', {BuyingPower: localBP});
+                    window.location.reload();
+                    // setBuyingPower(localBP);
+                    // console.log("new buyingPower: " + localBP);
+                    alert("Stock sell successful!");
+                } catch (error) {
+                    console.error('Error updating buying power:', error);
+                }
+            }
         }
     };
 
 
-return (
-    <div className="container">
-        <h2 className="w-100 d-flex justify-content-center p-3">Stock Portfolio</h2>
-        <div className="row">
-            <div className='col-md-12'>
-                <h3>View All The Owned Stocks</h3>
-                <table className="table table-striped">
-                    <thead>
-                    <tr>
-                        <th>Stock</th>
-                        <th>Price</th>
-                        <th>Action</th>
-                    </tr>
-                    </thead>
-                    <tbody>
-                    {
-                        stocks.map((stock, s) => {
-                            return (
-                                <tr key={s}>
-                                    <td>{stock.Symbol}</td>
-                                    <td>{stock.Price}</td>
-                                    <td>
-                                        <Link onClick={() => handleDelete(stock.Symbol)} className="btn btn-danger">Sell</Link>
-                                    </td>
-                                </tr>
-                            )
-                        })
-                    }
-                    </tbody>
-                </table>
+    return (
+        <div className="container">
+            <h2 className="w-100 d-flex justify-content-center p-3">Stock Portfolio</h2>
+            <div className="row">
+                <div className='col-md-12'>
+                    <h3>My Stocks</h3>
+                    <table className="table table-striped">
+                        <thead>
+                        <tr>
+                            <th>Stock</th>
+                            <th>Price Bought</th>
+                            <th>Current Price</th>
+                            <th>Action</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        {
+                            stocks.map((stock, s) => {
+                                return (
+                                    <tr key={s}>
+                                        <td>{stock.Symbol}</td>
+                                        <td>{stock.PriceBought}</td>
+                                        <td>{stock.CurrentPrice}</td>
+                                        <td>
+                                            <Link onClick={() => handleSell(stock)} className="btn btn-danger">Sell</Link>
+                                        </td>
+                                    </tr>
+                                )
+                            })
+                        }
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </div>
-    </div>
-);
+    );
 
 };
 

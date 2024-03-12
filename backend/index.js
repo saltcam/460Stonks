@@ -9,7 +9,7 @@ const mainRoute = require('./routes/mainRoute');
 const accountRoute = require('./routes/accountRoute');
 
 
-var app = express(express.json); 
+var app = express(express.json);
 
 app.use(cors());
 app.use(bodyParser.json());
@@ -21,7 +21,7 @@ app.use('/', accountRoute);
 // (1) Retrieves stock info based on inputted stock symbol. used in Service.js
 app.get('/stock-info/:symbol', (req, res) => {
     const { symbol } = req.params;
-    const ALPHA_VANTAGE_API_KEY = 'cn6i6k1r01qt2at49vtgcn6i6k1r01qt2at49vu0';
+    const ALPHA_VANTAGE_API_KEY = 'ZK34DB67NPOD1MVC';
     const url = `https://www.alphavantage.co/query?function=GLOBAL_QUOTE&symbol=${symbol}&apikey=${ALPHA_VANTAGE_API_KEY}`;
 
     https.get(url, (apiRes) => {
@@ -50,7 +50,7 @@ app.get('/stock-info/:symbol', (req, res) => {
 // (2) Retrieves all stock information to display the stock price fluctuation graph. Used in Stock.js
 app.get('/stock-graph/:symbol', (req, res) => {
     const { symbol } = req.params;
-    const ALPHA_VANTAGE_API_KEY = '8XSVL3X8346AJ8Q7';
+    const ALPHA_VANTAGE_API_KEY = 'ZK34DB67NPOD1MVC';
     const url = `https://www.alphavantage.co/query?function=TIME_SERIES_DAILY&symbol=${symbol}&outputsize=compact&apikey=${ALPHA_VANTAGE_API_KEY}`;
 
     https.get(url, (apiRes) => {
@@ -143,9 +143,9 @@ app.post('/buy-stock', (request, response) => {
 
 
 // (8) Delete a stock, called when user sells a stock
-app.delete('/sell-stock', (request, response) => {
+app.delete('/sell-stock/:Symbol', (request, response) => {
     const Symbol = request.params.Symbol;
-    const sqlQuery = "DELETE FROM Stocks WHERE Symbol = ? ; ";
+    const sqlQuery = "DELETE FROM Stocks WHERE Symbol = ? LIMIT 1; ";
     dbConnection.query(sqlQuery, Symbol, (err, result) => {
     if (err) {
     return response.status(400).json({ Error: "Failed: Record was not deleted" });

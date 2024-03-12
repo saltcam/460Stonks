@@ -9,7 +9,6 @@ function Service({ setStockSymbol, user }) {
         setStockSymbol(e.target.value.toUpperCase()); // Inform the parent component of the change
     };
 
-
     const [stockData, setStockData] = useState(null);
     const [validSymbol, setValidSymbol] = useState(false);
     const [buyingPower, setBuyingPower] = useState(0);
@@ -19,30 +18,35 @@ function Service({ setStockSymbol, user }) {
         CurrentPrice: ""
     });
 
-    useEffect(() => {
-        const fetchData = async () => {
-            if (inputValue.length >= 1) {
-                try {
-                    const response = await axios.get(`http://localhost:2000/stock-info/${inputValue}`);
-                    const data = response.data['Global Quote'];
-                    console.log(data);
-                    if (data) {
-                        setStockData(data);
-                        setValidSymbol(true);
-                    } else {
-                        setStockData(null);
-                        setValidSymbol(false);
-                    }
-                } catch (error) {
-                    console.error('Error fetching stock data:', error);
+    const fetchData = async () => {
+        if (inputValue.length >= 1) {
+            try {
+                const response = await axios.get(`http://localhost:2000/stock-info/${inputValue}`);
+                const data = response.data['Global Quote'];
+                console.log(data);
+                if (data) {
+                    setStockData(data);
+                    setValidSymbol(true);
+                } else {
                     setStockData(null);
                     setValidSymbol(false);
                 }
+            } catch (error) {
+                console.error('Error fetching stock data:', error);
+                setStockData(null);
+                setValidSymbol(false);
             }
-        };
+        }
+    };
 
-        fetchData();
-    }, [inputValue]);
+    useEffect(() => {
+        fetchData(); // Now fetchData can be called here
+    }, [inputValue]); // fetchData uses inputValue, so it's listed as a dependency
+
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+        await fetchData(); // And also here, without causing a scope error
+    };
 
     const handleBuy = async () => {
         let canBuy = false;
@@ -54,9 +58,6 @@ function Service({ setStockSymbol, user }) {
             const buyingPowerData = response.data; // Assuming the response contains an array with one object
             if (buyingPowerData.length > 0 ) {
                 setBuyingPower(parseFloat(buyingPowerData[0].BuyingPower));
-
-                //const stockPrice = parseFloat(stockData['05. price']);
-                const stockPrice = 191.15;
 
                 localBP = parseFloat(buyingPowerData[0].BuyingPower);
                 console.log("buyingPower: " + localBP + "  Price: " + price);
@@ -73,26 +74,12 @@ function Service({ setStockSymbol, user }) {
         }
 
         if (canBuy) {
+            let sold = false;
             try {
-
-                setPurchase({
+                await axios.post(decodeURI('http://localhost:2000/buy-stock'), {
                     Symbol: inputValue,
-                    PriceBought: "191.15",
-                    CurrentPrice: "191.15"
-                  });
-
-                const stockSymbol = inputValue;
-                const priceBought = 191.15;
-                const currentPrice = 191.15;
-
-                // const stockSymbol = stockData['01. symbol'];
-                // const priceBought = stockData['05. price'];
-                // const currentPrice = stockData['05. price'];
-
-                await axios.post('http://localhost:2000/buy-stock', {
-                    Symbol: inputValue,
-                    PriceBought: "191.15",
-                    CurrentPrice: "191.15"
+                    PriceBought: price,
+                    CurrentPrice: price
                 });
                 sold = true;
             } catch (error) {
@@ -129,17 +116,21 @@ function Service({ setStockSymbol, user }) {
                 <div className="card-body">
                     <h5 className="card-title">Live stock data</h5>
                 </div>
-                <div className="card-body">
-                    <div className="form-group">
-                        <input
-                            type="text"
-                            value={inputValue}
-                            onChange={(e) => setInputValue(e.target.value.toUpperCase())}
-                            className="form-control"
-                            autoComplete='off'
-                            placeholder="Enter stock symbol..." />
+
+                <form onSubmit={handleSubmit}> {/* Add form here */}
+                    <div className="card-body">
+                        <div className="form-group">
+                            <input
+                                type="text"
+                                value={inputValue}
+                                onChange={(e) => setInputValue(e.target.value.toUpperCase())}
+                                className="form-control"
+                                autoComplete='off'
+                                placeholder="Enter stock symbol..." />
+                        </div>
                     </div>
-                </div>
+                </form>
+
                 <div className="card-footer text-muted">
                     {stockData && (
                         <div className="card-body">
