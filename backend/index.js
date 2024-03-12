@@ -193,6 +193,7 @@ app.put('/update-buying-power', (request, response) => {
     const newBuyingPower = request.body.BuyingPower; 
     const sqlQuery = `UPDATE users SET BuyingPower = ?;`;
     dbConnection.query(sqlQuery, [newBuyingPower], (err, result) => {
+        console.log(result);
         if (err) {
             console.error(err);
             return response.status(400).json({Error: "Failed: BuyingPower was not updated."});

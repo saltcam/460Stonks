@@ -6,33 +6,91 @@ const MyStocks = () => {
 
 const [stocks, setStocks] = useState([]);
 
-useEffect(() => {
-    const getAllStocksInfo = async () => {
-        try {
-            const response = await axios.get("http://localhost:2000/owned-stocks", {
-                // Add any additional headers or query parameters if needed
-            });
-            setStocks(response.data);
-        } catch (error) {
-            console.error("Error fetching stocks:", error);
-        }
-    };
+    useEffect(() => {
+        const getAllStocksInfo = async () => {
+            try {
+                const response = await axios.get("http://localhost:2000/owned-stocks", {
+                    // Add any additional headers or query parameters if needed
+                });
+                setStocks(response.data);
+                setStocks(response.data);
+            } catch (error) {
+                console.error("Error fetching stocks:", error);
+            }
+            console.log(stocks);
+
+
+            let newPrice = 0;
+
+console.log("About to loop");
+
+// stocks.map((stock, s) => {
+//
+// });
+
+
+            for (let i = 0; i < stocks.length; i++) {
+                // console.log("looping! " + i);
+                // console.log("Symbol:", stocks[i].Symbol, "CurrentPrice:", stocks[i].CurrentPrice);
+
+                try {
+                    const response = await axios.get(`http://localhost:2000/stock-info/${stocks[i].Symbol}`);
+                    const data = response.data['Global Quote'];
+                    newPrice = data['05. price'];
+                    // console.log("new Price: " + newPrice);
+
+                } catch (error) {
+                    console.error("retrieving current price:", error);
+                }
+
+                try {
+                    await axios.put(`http://localhost:2000/update-current-price/${stocks[i].Symbol}`,
+                        { CurrentPrice: newPrice });
+                } catch (error) {
+                    console.error("Error updating current stock prices:", error);
+
+                }
+
+            }
+
+        };
+
+
 
     getAllStocksInfo();
 }, []);
 
-    const handleDelete = async (Name) => {
-        const deleteConfirmed = window.confirm('Are you sure about the deletion of this record permanently from the database?');
-        if (deleteConfirmed) {
+    const handleSell = async (stock) => {
+        let localBP = 0;
+        let sold = false;
+        const sellConfirmed = window.confirm('Are you sure you want to sell this stock?');
+        if (sellConfirmed) {
+
             try {
-                await axios.delete('http://localhost:2000/' + Name);
-                console.log(Name);
-                window.location.reload()
-            } catch (err) {
-                console.log("Error:" + err);
+                const responseBP = await axios.get('http://localhost:2000/check-buying-power');
+                const buyingPowerData = responseBP.data; // Assuming the response contains an array with one object
+                if (buyingPowerData.length > 0) {
+                    localBP = parseFloat(buyingPowerData[0].BuyingPower);
+                }
+            } catch (error) {
+                console.error('Error fetching buying power:', error);
+            }
+
+
+
+            try {
+                console.log(stock);
+                localBP += stock.CurrentPrice;
+                await axios.delete(decodeURI('http://localhost:2000/sell-stock/') + stock.Symbol);
+                sold = true;
+                // Reload the page or update state to reflect changes
+                // window.location.reload();
+            } catch (error) {
+                console.error("Error selling stock:", error);
             }
         }
     };
+
 
 return (
     <div className="container">

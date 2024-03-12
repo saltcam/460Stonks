@@ -92,22 +92,31 @@ function Service({ setStockSymbol }) {
                     PriceBought: "191.15",
                     CurrentPrice: "191.15"
                 });
-
-
-                const newBuyingPower = buyingPower - priceBought;
-
-                await axios.put('http://localhost:2000/update-buying-power', {
-                    BuyingPower: newBuyingPower
-                });
-                setBuyingPower(newBuyingPower)
-                console.log("new buyingPower: " + buyingPower);
-                alert("Stock purchase successful!");
-
-
+                sold = true;
             } catch (error) {
-                console.error('Error buying stock:', error);
+                console.error("error buying stock" + error);
                 alert("Failed to purchase stock.");
             }
+
+            if (sold) {
+                try {
+                    console.log("2.   buyingPower: " + localBP + "  Price: " + price);
+                    const newBuyingPower = localBP - price;
+                    console.log("new buying power: " + newBuyingPower);
+
+                    await axios.put('http://localhost:2000/update-buying-power', {
+                        BuyingPower: newBuyingPower
+                    });
+                    setBuyingPower(newBuyingPower);
+                    console.log("new buyingPower: " + newBuyingPower);
+                    alert("Stock purchase successful!");
+
+
+                } catch (error) {
+                    console.error('Error updating buying power:', error);
+                }
+            }
+
         }
     };
 
