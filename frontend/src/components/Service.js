@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import Stock from './Stock';
 
-function Service({ setStockSymbol }) {
+function Service({ setStockSymbol, user }) {
     const [inputValue, setInputValue] = useState('');
 
     const handleInputChange = (e) => {
@@ -46,20 +46,22 @@ function Service({ setStockSymbol }) {
 
     const handleBuy = async () => {
         let canBuy = false;
+        let localBP = 0;
+        let price = 191.15 /*stockData['05. price']*/;
         try {
             // Fetching buying power from the backend
             const response = await axios.get('http://localhost:2000/check-buying-power');
             const buyingPowerData = response.data; // Assuming the response contains an array with one object
-            if (buyingPowerData.length > 0) {
+            if (buyingPowerData.length > 0 ) {
                 setBuyingPower(parseFloat(buyingPowerData[0].BuyingPower));
 
                 //const stockPrice = parseFloat(stockData['05. price']);
                 const stockPrice = 191.15;
 
-                const fetchedBuyingPower = parseFloat(buyingPowerData[0].BuyingPower);
-                console.log("buyingPower: " + fetchedBuyingPower + "  Price: " + stockPrice);
+                localBP = parseFloat(buyingPowerData[0].BuyingPower);
+                console.log("buyingPower: " + localBP + "  Price: " + price);
 
-                if (fetchedBuyingPower >= stockPrice) {
+                if (localBP >= price) {
                     canBuy = true;
                     console.log("CanBuy: " + canBuy);
                 } else {
@@ -150,9 +152,8 @@ function Service({ setStockSymbol }) {
                             <p className="card-text">
                                 <strong>Last Refreshed:</strong> {stockData['07. latest trading day']}
                             </p>
-                            <Stock
-                                StockSymbol = {inputValue}
-                            />
+                            {/* Conditionally render the Stock component */}
+                            {validSymbol && <Stock StockSymbol={inputValue} />}
                         </div>
                     )}
                     <div className="card-body">
@@ -163,10 +164,8 @@ function Service({ setStockSymbol }) {
             </div>
 
         </div>
-
-
     );
+
 }
 
 export default Service;
-
